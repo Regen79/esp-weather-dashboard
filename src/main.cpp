@@ -2,6 +2,7 @@
 #include <DHT.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 
 #define DHTPIN 5
@@ -10,8 +11,8 @@ DHT dht(DHTPIN, DHTTYPE);
 
 const char* ssid = "Platform_9_3/4";
 const char* password = "muriasy3";
-const char* serverUrl = "http://192.168.1.127:3000/api/measurements";
-const char* apiKey = "yQ2Xe3JHc8zSvwCjV2vniPad";
+const char* serverUrl = "https://crisweatherdashboard.duckdns.org/api/measurements";
+const char* apiKey = "cJoseALNAtcQBpZKfrk1FaQ6";
 
 void setup(){
     Serial.begin(115200);
@@ -48,9 +49,12 @@ void loop(){
     digitalWrite(LED_BUILTIN, HIGH);
     delay(1000);
     digitalWrite(LED_BUILTIN, LOW);
+
+    WiFiClientSecure client;
+    client.setInsecure();
    
     HTTPClient http;
-    http.begin(serverUrl);
+    http.begin(client, serverUrl);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Accept","application/json");
     http.addHeader("Authorization", String("Bearer ") + apiKey);
