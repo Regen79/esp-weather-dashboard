@@ -20,7 +20,7 @@ float lastSentHumidity = -999.0;
 unsigned long lastSentTime = 0;
 
 const float TEMPERATURE_THRESHOLD = 0.1;
-const float HUMIDITY_THRESHOLD = 1.0;
+const float HUMIDITY_THRESHOLD = 2.0;
 
 const unsigned long HEARTBEAT_INTERVAL = 60 * 60 * 1000; 
 const unsigned long CHECK_INTERVAL = 20000;           
