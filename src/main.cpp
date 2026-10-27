@@ -17,13 +17,17 @@ const char* apiKey = "cJoseALNAtcQBpZKfrk1FaQ6";
 float lastSentTempreature = -999.0;
 float lastSentHumidity = -999.0;
 
+float filteredTemperature = -999.0;
+float filteredHumidity = -999.0;
+
+const float ALPHA = 0.15; 
 unsigned long lastSentTime = 0;
 
-const float TEMPERATURE_THRESHOLD = 0.1;
-const float HUMIDITY_THRESHOLD = 2.0;
+const float TEMPERATURE_THRESHOLD = 0.1; 
+const float HUMIDITY_THRESHOLD = 1.0;
 
-const unsigned long HEARTBEAT_INTERVAL = 60 * 60 * 1000; 
-const unsigned long CHECK_INTERVAL = 20000;           
+const unsigned long HEARTBEAT_INTERVAL = 60 * 60 * 1000; // 1 hour
+const unsigned long CHECK_INTERVAL = 20000;              // 20 seconds
 
 void setup() {
     Serial.begin(115200);
@@ -40,7 +44,6 @@ void setup() {
     Serial.println(ssid);
 }
 
-
 void sendMeasurement(float temperature, float humidity) {
     digitalWrite(LED_BUILTIN, HIGH);
 
@@ -53,7 +56,7 @@ void sendMeasurement(float temperature, float humidity) {
     http.addHeader("Accept", "application/json");
     http.addHeader("Authorization", String("Bearer ") + apiKey);
     
-    String jsonData = "{\"measurement\":{\"temperature\":" + String(temperature, 1) + ",\"humidity\":" + String(humidity, 1) + "}}";
+    String jsonData = "{\"measurement\":{\"temperature\":" + String(temperature, 2) + ",\"humidity\":" + String(humidity, 2) + "}}";
     int httpResponseCode = http.POST(jsonData);
    
     if (httpResponseCode > 0) {
@@ -87,37 +90,44 @@ void sendMeasurement(float temperature, float humidity) {
     digitalWrite(LED_BUILTIN, LOW);
 }
 
-
 void loop() {
-    float humidity = dht.readHumidity();
-    float temperature = dht.readTemperature();
+    float rawHumidity = dht.readHumidity();
+    float rawTemperature = dht.readTemperature();
    
-    if (isnan(humidity) || isnan(temperature)) {
+    if (isnan(rawHumidity) || isnan(rawTemperature)) {
         Serial.println("Error, read of sensor");
         delay(CHECK_INTERVAL);
         return;
     }
 
+   
+    if (filteredTemperature == -999.0 || filteredHumidity == -999.0) {
+        filteredTemperature = rawTemperature;
+        filteredHumidity = rawHumidity;
+    } else {
+        filteredTemperature = (ALPHA * rawTemperature) + ((1.0 - ALPHA) * filteredTemperature);
+        filteredHumidity = (ALPHA * rawHumidity) + ((1.0 - ALPHA) * filteredHumidity);
+    }
 
     bool firstRun = (lastSentTempreature == -999.0);
-    bool temperatureChanged = abs(temperature - lastSentTempreature) >= TEMPERATURE_THRESHOLD;
-    bool humidityChanged = abs(humidity - lastSentHumidity) >= HUMIDITY_THRESHOLD;
+    bool temperatureChanged = abs(filteredTemperature - lastSentTempreature) >= TEMPERATURE_THRESHOLD;
+    bool humidityChanged = abs(filteredHumidity - lastSentHumidity) >= HUMIDITY_THRESHOLD;
     bool heartbeat = (millis() - lastSentTime) >= HEARTBEAT_INTERVAL;
 
     if (firstRun || temperatureChanged || humidityChanged || heartbeat) {
         Serial.println("------------------------------------------------");
-        Serial.print("Sending -> Temperature: ");
-        Serial.print(temperature);
+        Serial.print("Sending (Filtered) -> Temperature: ");
+        Serial.print(filteredTemperature, 2);
         Serial.print("°C | Humidity: ");
-        Serial.print(humidity);
+        Serial.print(filteredHumidity, 2);
         Serial.println("%");
 
-        sendMeasurement(temperature, humidity);
+        sendMeasurement(filteredTemperature, filteredHumidity);
     } else {
-        Serial.print("No change -> Temperature: ");
-        Serial.print(temperature);
+        Serial.print("No change (Filtered) -> Temperature: ");
+        Serial.print(filteredTemperature, 2);
         Serial.print("°C | Humidity: ");
-        Serial.print(humidity);
+        Serial.print(filteredHumidity, 2);
         Serial.println("%. Skipping POST.");
     }
 
