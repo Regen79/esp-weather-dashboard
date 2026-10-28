@@ -11,7 +11,7 @@ DHT dht(DHTPIN, DHTTYPE);
 
 const char* ssid = "Platform_9_3/4";
 const char* password = "muriasy3";
-const char* serverUrl = "https://crisweatherdashboard.duckdns.org/api/measurements";
+const char* serverUrl = "https://weather.crislabs.com/api/measurements";
 const char* apiKey = "cJoseALNAtcQBpZKfrk1FaQ6";
 
 float lastSentTempreature = -999.0;
